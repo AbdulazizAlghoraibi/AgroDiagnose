@@ -3,6 +3,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ImagePlus, X, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { t } from "@/lib/translations";
+import { Language } from "@/lib/translations";
 
 interface ImageUploadProps {
   selectedImage: File | null;
@@ -10,6 +12,7 @@ interface ImageUploadProps {
   onImageSelect: (file: File) => void;
   onRemoveImage: () => void;
   onAnalyzeImage: () => void;
+  language: Language;
 }
 
 export default function ImageUpload({
@@ -18,6 +21,7 @@ export default function ImageUpload({
   onImageSelect,
   onRemoveImage,
   onAnalyzeImage,
+  language
 }: ImageUploadProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -37,8 +41,10 @@ export default function ImageUpload({
     if (!validTypes.includes(file.type)) {
       toast({
         variant: "destructive",
-        title: "نوع ملف غير صالح",
-        description: "الرجاء تحميل صورة بتنسيق JPG أو PNG فقط.",
+        title: language === "ar" ? "نوع ملف غير صالح" : "Invalid file type",
+        description: language === "ar" 
+          ? "الرجاء تحميل صورة بتنسيق JPG أو PNG فقط."
+          : "Please upload only JPG or PNG images.",
       });
       return;
     }
@@ -48,8 +54,10 @@ export default function ImageUpload({
     if (file.size > maxSize) {
       toast({
         variant: "destructive",
-        title: "الملف كبير جدًا",
-        description: "حجم الملف يجب أن يكون أقل من 5 ميجابايت.",
+        title: language === "ar" ? "الملف كبير جدًا" : "File too large",
+        description: language === "ar"
+          ? "حجم الملف يجب أن يكون أقل من 5 ميجابايت."
+          : "File size must be less than 5MB.",
       });
       return;
     }
@@ -79,8 +87,8 @@ export default function ImageUpload({
   return (
     <Card className="bg-white rounded-lg shadow-md h-full">
       <CardContent className="p-6">
-        <h2 className="text-lg font-bold text-primary-dark mb-4">تحميل صورة النبات</h2>
-        <p className="text-gray-600 mb-4">قم بتحميل صورة واضحة للنبات للكشف عن الأمراض المحتملة</p>
+        <h2 className="text-lg font-bold text-primary-dark mb-4">{t("home.upload.title", language)}</h2>
+        <p className="text-gray-600 mb-4">{t("home.subtitle", language)}</p>
         
         {!imagePreview ? (
           <div
@@ -100,8 +108,8 @@ export default function ImageUpload({
               onChange={handleFileSelect}
             />
             <ImagePlus className="mx-auto h-12 w-12 text-gray-400 mb-2" />
-            <p className="font-medium text-gray-500">اسحب الصورة هنا أو انقر للاختيار</p>
-            <p className="text-sm text-gray-400 mt-2">JPG, PNG (الحد الأقصى: 5MB)</p>
+            <p className="font-medium text-gray-500">{t("home.upload.button", language)}</p>
+            <p className="text-sm text-gray-400 mt-2">{t("home.upload.subtitle", language)}</p>
           </div>
         ) : (
           <div className="mt-4">
@@ -123,7 +131,7 @@ export default function ImageUpload({
               className="mt-4 w-full bg-primary hover:bg-primary-dark text-white font-medium py-2 rounded-lg flex items-center justify-center transition"
             >
               <Search className="mr-2 h-5 w-5" />
-              تحليل الصورة
+              {t("home.analyze.button", language)}
             </Button>
           </div>
         )}

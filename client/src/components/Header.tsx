@@ -1,4 +1,5 @@
 import { Globe } from "lucide-react";
+import { t } from "@/lib/translations";
 
 interface HeaderProps {
   language: "ar" | "en";
@@ -16,7 +17,7 @@ export default function Header({ language, setLanguage }: HeaderProps) {
         <div className="flex items-center">
           <span className="material-icons text-white mr-2">eco</span>
           <h1 className="text-xl font-bold text-white">
-            {language === "ar" ? "الكشف عن أمراض النباتات" : "Plant Disease Detection"}
+            {t("app.title", language)}
           </h1>
         </div>
         <button 
@@ -24,7 +25,7 @@ export default function Header({ language, setLanguage }: HeaderProps) {
           className="px-3 py-1 rounded-full bg-white/20 text-white text-sm flex items-center"
         >
           <Globe className="h-4 w-4 mr-1" />
-          {language === "ar" ? "AR | EN" : "EN | AR"}
+          {t("nav.language", language)}
         </button>
       </div>
     </header>

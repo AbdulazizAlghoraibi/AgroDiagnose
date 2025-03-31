@@ -1,14 +1,19 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UploadCloud, History, ImagePlus } from "lucide-react";
 import HistoryItem from "@/components/HistoryItem";
 import { Button } from "@/components/ui/button";
 import { Diagnosis } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
+import { t } from "@/lib/translations";
+import { Language } from "@/lib/translations";
 
-export default function DiagnosisHistory() {
+interface DiagnosisHistoryProps {
+  language: Language;
+}
+
+export default function DiagnosisHistory({ language }: DiagnosisHistoryProps) {
   // Fetch diagnosis history
   const { data: diagnoses, isLoading } = useQuery<Diagnosis[]>({
     queryKey: ["/api/diagnoses"],
@@ -16,6 +21,8 @@ export default function DiagnosisHistory() {
 
   return (
     <div>
+      <h1 className="text-2xl font-bold mb-4">{t("history.title", language)}</h1>
+      
       <Tabs defaultValue="history" className="w-full">
         <TabsList className="mb-6 border-b border-neutral-dark w-full flex rounded-none bg-transparent h-auto p-0">
           <TabsTrigger 
@@ -25,7 +32,7 @@ export default function DiagnosisHistory() {
           >
             <Link href="/">
               <UploadCloud className="h-4 w-4 mr-2" />
-              تحميل صورة
+              {t("nav.home", language)}
             </Link>
           </TabsTrigger>
           <TabsTrigger 
@@ -33,12 +40,10 @@ export default function DiagnosisHistory() {
             className="px-4 py-2 font-medium data-[state=active]:border-b-2 data-[state=active]:border-primary-dark data-[state=active]:text-primary-dark text-gray-500 rounded-none bg-transparent"
           >
             <History className="h-4 w-4 mr-2" />
-            السجل السابق
+            {t("nav.history", language)}
           </TabsTrigger>
         </TabsList>
         <TabsContent value="history" className="mt-0">
-          <h2 className="text-xl font-bold text-primary-dark mb-4">سجل التشخيصات السابقة</h2>
-          
           {isLoading ? (
             // Loading skeleton
             Array.from({ length: 3 }).map((_, index) => (
@@ -62,20 +67,20 @@ export default function DiagnosisHistory() {
           ) : diagnoses && diagnoses.length > 0 ? (
             // Diagnosis history list
             diagnoses.map((diagnosis) => (
-              <HistoryItem key={diagnosis.id} diagnosis={diagnosis} />
+              <HistoryItem key={diagnosis.id} diagnosis={diagnosis} language={language} />
             ))
           ) : (
             // Empty state
             <div className="text-center py-12">
               <History className="mx-auto text-4xl text-gray-300" />
-              <p className="mt-2 text-gray-500">لا توجد تشخيصات سابقة</p>
+              <p className="mt-2 text-gray-500">{t("history.empty", language)}</p>
               <Button 
                 asChild
                 className="mt-4 bg-primary hover:bg-primary-dark text-white font-medium py-2 px-4 rounded-lg inline-flex items-center transition"
               >
                 <Link href="/">
                   <ImagePlus className="mr-2 h-4 w-4" />
-                  ابدأ التشخيص الأول
+                  {t("history.start", language)}
                 </Link>
               </Button>
             </div>

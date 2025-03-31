@@ -5,8 +5,14 @@ import DiagnosisResult from "@/components/DiagnosisResult";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Diagnosis } from "@shared/schema";
 import { UploadCloud, History } from "lucide-react";
+import { t } from "@/lib/translations";
+import { Language } from "@/lib/translations";
 
-export default function Home() {
+interface HomeProps {
+  language: Language;
+}
+
+export default function Home({ language }: HomeProps) {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -32,6 +38,9 @@ export default function Home() {
 
   return (
     <div>
+      <h1 className="text-2xl font-bold mb-4">{t("home.title", language)}</h1>
+      <p className="text-gray-600 mb-6">{t("home.subtitle", language)}</p>
+      
       <Tabs defaultValue="upload" className="w-full">
         <TabsList className="mb-6 border-b border-neutral-dark w-full flex rounded-none bg-transparent h-auto p-0">
           <TabsTrigger 
@@ -39,7 +48,7 @@ export default function Home() {
             className="px-4 py-2 font-medium data-[state=active]:border-b-2 data-[state=active]:border-primary-dark data-[state=active]:text-primary-dark text-gray-500 rounded-none bg-transparent"
           >
             <UploadCloud className="h-4 w-4 mr-2" />
-            تحميل صورة
+            {t("nav.home", language)}
           </TabsTrigger>
           <TabsTrigger 
             value="history"
@@ -48,7 +57,7 @@ export default function Home() {
           >
             <Link href="/history">
               <History className="h-4 w-4 mr-2" />
-              السجل السابق
+              {t("nav.history", language)}
             </Link>
           </TabsTrigger>
         </TabsList>
@@ -65,6 +74,7 @@ export default function Home() {
                     setIsAnalyzing(true);
                   }
                 }}
+                language={language}
               />
             </div>
 
@@ -78,6 +88,7 @@ export default function Home() {
                     setDiagnosisResult(diagnosis);
                     setIsAnalyzing(false);
                   }}
+                  language={language}
                 />
               </div>
             )}

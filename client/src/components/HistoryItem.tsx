@@ -1,21 +1,13 @@
 import { Diagnosis } from "@shared/schema";
+import { t, formatDate } from "@/lib/translations";
+import { Language } from "@/lib/translations";
 
 interface HistoryItemProps {
   diagnosis: Diagnosis;
+  language: Language;
 }
 
-export default function HistoryItem({ diagnosis }: HistoryItemProps) {
-  // Format the timestamp to a readable format
-  const formatDate = (timestamp: Date) => {
-    // For Arabic format
-    const date = new Date(timestamp);
-    return new Intl.DateTimeFormat('ar-SA', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    }).format(date);
-  };
-
+export default function HistoryItem({ diagnosis, language }: HistoryItemProps) {
   // Get CSS classes for severity badge
   const getSeverityBadgeClasses = (severity: string) => {
     let baseClasses = "inline-block px-2 py-1 text-xs rounded-full ";
@@ -32,18 +24,29 @@ export default function HistoryItem({ diagnosis }: HistoryItemProps) {
     }
   };
 
-  // Convert severity level to Arabic text
+  // Get severity text based on language
   const getSeverityText = (severity: string) => {
     switch (severity) {
       case "low":
-        return "منخفضة الخطورة";
+        return t("diagnosis.severity.low", language);
       case "medium":
-        return "متوسطة الخطورة";
+        return t("diagnosis.severity.medium", language);
       case "high":
-        return "عالية الخطورة";
+        return t("diagnosis.severity.high", language);
       default:
-        return "غير معروفة";
+        return severity;
     }
+  };
+
+  // Get appropriate description based on language
+  const getDescription = () => {
+    const descriptions = diagnosis.description.split('\n');
+    if (language === "ar" && descriptions.length > 0) {
+      return descriptions[0]; // Arabic description first
+    } else if (language === "en" && descriptions.length > 1) {
+      return descriptions[1]; // English description second
+    }
+    return diagnosis.description; // Fallback to whatever is available
   };
 
   return (
@@ -57,14 +60,16 @@ export default function HistoryItem({ diagnosis }: HistoryItemProps) {
         <div className="flex-grow mr-3">
           <div className="flex justify-between items-start">
             <h3 className="font-bold text-primary-dark">{diagnosis.diseaseName}</h3>
-            <span className="text-xs text-gray-500">{formatDate(diagnosis.timestamp)}</span>
+            <span className="text-xs text-gray-500">
+              {t("history.date", language)} {formatDate(diagnosis.timestamp, language)}
+            </span>
           </div>
           <p className="text-sm text-gray-600 mt-1 line-clamp-2">
-            {diagnosis.description.split('\n')[0]} {/* Show only the Arabic description */}
+            {getDescription()}
           </p>
           <div className="flex mt-2">
             <span className={getSeverityBadgeClasses(diagnosis.severity)}>
-              {getSeverityText(diagnosis.severity)}
+              {t("diagnosis.severity", language)} {getSeverityText(diagnosis.severity)}
             </span>
           </div>
         </div>
