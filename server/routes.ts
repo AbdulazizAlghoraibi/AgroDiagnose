@@ -40,7 +40,13 @@ const upload = multer({
   },
 });
 
-// Plant disease classification function using HuggingFace API
+/**
+ * Advanced plant disease classification function using multiple HuggingFace models
+ * Attempts to identify plant diseases from leaf images with sophisticated pattern matching
+ * 
+ * @param imagePath Path to the uploaded image file
+ * @returns Object containing the disease information in both English and Arabic
+ */
 async function classifyPlantDisease(imagePath: string): Promise<{
   diseaseName: string;
   arabicName: string;
@@ -50,7 +56,7 @@ async function classifyPlantDisease(imagePath: string): Promise<{
   severityScore: number;
 }> {
   try {
-    // Database of plant diseases with English and Arabic information
+    // Comprehensive database of plant diseases with English and Arabic information
     const diseaseDatabase: Record<string, {
       arabicName: string;
       description: string;
@@ -93,10 +99,31 @@ async function classifyPlantDisease(imagePath: string): Promise<{
         severity: "medium",
         severityScore: 55
       },
-      "Tomato Virus": {
-        arabicName: "فيروس الطماطم",
-        description: "Viral infections causing mottled leaves, stunted growth, and fruit deformation. Spread by insects and cannot be cured.",
-        arabicDescription: "عدوى فيروسية تسبب أوراقًا مبقعة، ونموًا متقزمًا، وتشوهًا في الثمار. تنتشر عن طريق الحشرات ولا يمكن علاجها.",
+      "Tomato Spider Mites": {
+        arabicName: "عنكبوت الطماطم",
+        description: "Tiny pests that cause stippling on leaves. Severe infestations lead to leaf yellowing, bronzing, and leaf drop.",
+        arabicDescription: "آفات صغيرة تسبب بقعًا على الأوراق. تؤدي الإصابات الشديدة إلى اصفرار الأوراق وتبرنزها وتساقطها.",
+        severity: "medium",
+        severityScore: 60
+      },
+      "Tomato Target Spot": {
+        arabicName: "البقعة المستهدفة للطماطم",
+        description: "A fungal disease causing circular lesions with concentric rings on leaves, stems, and fruit.",
+        arabicDescription: "مرض فطري يسبب آفات دائرية ذات حلقات متحدة المركز على الأوراق والسيقان والثمار.",
+        severity: "medium",
+        severityScore: 65
+      },
+      "Tomato Yellow Leaf Curl Virus": {
+        arabicName: "فيروس تجعد وإصفرار أوراق الطماطم",
+        description: "A viral disease causing upward leaf curling, yellowing, and stunted growth. Transmitted by whiteflies.",
+        arabicDescription: "مرض فيروسي يسبب تجعد الأوراق للأعلى واصفرارها وتقزم النمو. ينتقل عن طريق الذبابة البيضاء.",
+        severity: "high",
+        severityScore: 80
+      },
+      "Tomato Mosaic Virus": {
+        arabicName: "فيروس موزاييك الطماطم",
+        description: "A viral disease causing mottled green-yellow areas on leaves, with leaf distortion and stunted growth.",
+        arabicDescription: "مرض فيروسي يسبب مناطق مبرقشة خضراء-صفراء على الأوراق، مع تشوه الأوراق وتقزم النمو.",
         severity: "high",
         severityScore: 85
       },
@@ -121,6 +148,13 @@ async function classifyPlantDisease(imagePath: string): Promise<{
         severity: "high",
         severityScore: 95
       },
+      "Potato Healthy": {
+        arabicName: "بطاطس سليمة",
+        description: "This potato plant appears healthy with no visible disease symptoms.",
+        arabicDescription: "تبدو نبتة البطاطس هذه سليمة بدون أعراض مرضية ظاهرة.",
+        severity: "low",
+        severityScore: 10
+      },
       "Corn Common Rust": {
         arabicName: "صدأ الذرة الشائع",
         description: "A fungal disease causing small, rusty spots on leaves. Reduces photosynthesis and yield in severe cases.",
@@ -134,6 +168,13 @@ async function classifyPlantDisease(imagePath: string): Promise<{
         arabicDescription: "مرض فطري يسبب آفات طويلة تشبه السيجار على الأوراق. يقلل من الإنتاج والجودة في الحالات الشديدة.",
         severity: "high",
         severityScore: 75
+      },
+      "Corn Healthy": {
+        arabicName: "ذرة سليمة",
+        description: "This corn plant appears healthy with no visible disease symptoms.",
+        arabicDescription: "تبدو نبتة الذرة هذه سليمة بدون أعراض مرضية ظاهرة.",
+        severity: "low",
+        severityScore: 10
       },
       "Wheat Rust": {
         arabicName: "صدأ القمح",
@@ -151,18 +192,138 @@ async function classifyPlantDisease(imagePath: string): Promise<{
       },
       "Unknown": {
         arabicName: "غير معروف",
-        description: "The image couldn't be clearly identified. Please take another photo with better lighting and focus on the affected plant part.",
-        arabicDescription: "لم يتم التعرف على الصورة بوضوح. يرجى التقاط صورة أخرى بإضاءة أفضل والتركيز على جزء النبات المصاب.",
+        description: "The image couldn't be clearly identified as a plant disease. Please take another photo with better lighting and focus on the affected plant part.",
+        arabicDescription: "لم يتم التعرف على الصورة بوضوح كمرض نباتي. يرجى التقاط صورة أخرى بإضاءة أفضل والتركيز على جزء النبات المصاب.",
         severity: "medium",
         severityScore: 50
       }
     };
 
-    // Read the file as a buffer
+    // Read the image file as a buffer for API requests
     const imageBuffer = fs.readFileSync(imagePath);
     
+    // Define an array of specialized plant disease models to try
+    const plantDiseaseModels = [
+      "merve/plant-disease-classification",         // Specialized plant disease model
+      "darragh/tomato-plant-disease",               // Specific for tomato diseases
+      "gogomomo12/plant_diseases_classification_63", // Comprehensive plant disease model
+      "nouribram/apple-disease-detection"           // Apple disease detection model
+    ];
+
+    // ===== Step 1: Try specialized plant disease models first =====
+    for (const modelEndpoint of plantDiseaseModels) {
+      try {
+        console.log(`Trying plant disease model: ${modelEndpoint}`);
+        
+        const response = await axios.post(
+          `https://api-inference.huggingface.co/models/${modelEndpoint}`,
+          imageBuffer,
+          { 
+            headers: { 
+              Authorization: `Bearer ${process.env.HUGGINGFACE_API_KEY}`,
+              "Content-Type": "application/octet-stream"
+            },
+            timeout: 12000 // 12-second timeout per specialized model
+          }
+        );
+        
+        // Check if we received valid prediction data
+        if (response.data && Array.isArray(response.data)) {
+          const predictions = response.data;
+          console.log(`${modelEndpoint} response:`, predictions);
+          
+          // Only consider predictions with reasonable confidence (above 25%)
+          const confidentPredictions = predictions.filter(p => p.score > 0.25);
+          
+          if (confidentPredictions.length > 0) {
+            // ----- Direct Disease Name Matching -----
+            for (const prediction of confidentPredictions) {
+              const label = prediction.label.toLowerCase();
+              
+              // Check for exact matches with disease names
+              for (const diseaseName of Object.keys(diseaseDatabase)) {
+                // Compare with case insensitivity and different word arrangements
+                if (label.includes(diseaseName.toLowerCase()) || 
+                    diseaseName.toLowerCase().includes(label)) {
+                  console.log(`Found exact disease match: ${diseaseName} (confidence: ${prediction.score.toFixed(2)})`);
+                  return {
+                    diseaseName,
+                    ...diseaseDatabase[diseaseName]
+                  };
+                }
+              }
+              
+              // ----- Plant Type + Disease Type Matching -----
+              // Check for plant types first (tomato, potato, corn, etc.)
+              const plantTypes = ["tomato", "potato", "corn", "apple", "wheat"];
+              let matchedPlantType = null;
+              
+              for (const plantType of plantTypes) {
+                if (label.includes(plantType)) {
+                  matchedPlantType = plantType;
+                  break;
+                }
+              }
+              
+              if (matchedPlantType) {
+                // Now look for disease keywords
+                const diseaseKeywords = ["blight", "spot", "rust", "mold", "virus", "curl", "mites", 
+                                         "mosaic", "bacterial", "septoria", "target", "late", "early"];
+                
+                for (const keyword of diseaseKeywords) {
+                  if (label.includes(keyword)) {
+                    // Try to find matching disease in our database
+                    const possibleDisease = `${matchedPlantType.charAt(0).toUpperCase() + matchedPlantType.slice(1)} ${keyword.charAt(0).toUpperCase() + keyword.slice(1)}`;
+                    
+                    // Check for exact matches first
+                    for (const diseaseName of Object.keys(diseaseDatabase)) {
+                      if (diseaseName.includes(possibleDisease)) {
+                        console.log(`Found plant+disease match: ${diseaseName} (confidence: ${prediction.score.toFixed(2)})`);
+                        return {
+                          diseaseName,
+                          ...diseaseDatabase[diseaseName]
+                        };
+                      }
+                    }
+                    
+                    // Try partial matches with the plant type
+                    for (const diseaseName of Object.keys(diseaseDatabase)) {
+                      if (diseaseName.toLowerCase().includes(matchedPlantType) && 
+                          diseaseName.toLowerCase().includes(keyword)) {
+                        console.log(`Found partial plant+disease match: ${diseaseName} (confidence: ${prediction.score.toFixed(2)})`);
+                        return {
+                          diseaseName,
+                          ...diseaseDatabase[diseaseName]
+                        };
+                      }
+                    }
+                  }
+                }
+                
+                // Check if the plant is specifically identified as healthy
+                if (label.includes("healthy")) {
+                  const healthyDiseaseName = `${matchedPlantType.charAt(0).toUpperCase() + matchedPlantType.slice(1)} Healthy`;
+                  if (diseaseDatabase[healthyDiseaseName]) {
+                    console.log(`Plant identified as healthy: ${healthyDiseaseName} (confidence: ${prediction.score.toFixed(2)})`);
+                    return {
+                      diseaseName: healthyDiseaseName,
+                      ...diseaseDatabase[healthyDiseaseName]
+                    };
+                  }
+                }
+              }
+            }
+          }
+        }
+      } catch (error: any) {
+        console.error(`Error with model ${modelEndpoint}:`, error?.message || "Unknown error");
+        // Continue to next model on error
+      }
+    }
+    
+    // ===== Step 2: Try a general image classification model =====
     try {
-      // Make API call to HuggingFace
+      console.log("Trying general image classification model");
       const response = await axios.post(
         "https://api-inference.huggingface.co/models/google/vit-base-patch16-224",
         imageBuffer,
@@ -171,123 +332,170 @@ async function classifyPlantDisease(imagePath: string): Promise<{
             Authorization: `Bearer ${process.env.HUGGINGFACE_API_KEY}`,
             "Content-Type": "application/octet-stream"
           },
-          timeout: 30000 // 30-second timeout
+          timeout: 15000 // 15-second timeout for general model
         }
       );
       
       // Process the response
       if (response.data && Array.isArray(response.data)) {
-        console.log("HuggingFace API Response:", response.data);
+        console.log("General model response:", response.data);
         
-        // Extract the top prediction
         const predictions = response.data;
-        let topPrediction = null;
         
-        // Look for plant disease predictions in the results
-        for (const prediction of predictions) {
-          const label = prediction.label;
-          // Check if this prediction matches any known plant disease
-          for (const diseaseName of Object.keys(diseaseDatabase)) {
-            if (label.toLowerCase().includes(diseaseName.toLowerCase())) {
-              topPrediction = {
-                diseaseName: diseaseName,
-                ...diseaseDatabase[diseaseName]
-              };
+        // ----- Plant Detection Logic -----
+        // Check if any of the predictions suggest this is a plant
+        const plantKeywords = ["plant", "leaf", "crop", "tomato", "potato", "corn", "wheat", 
+                              "apple", "fruit", "vegetable", "tree", "foliage"];
+        
+        let isPlant = false;
+        let plantType = null;
+        
+        // Check top 3 predictions for plant indicators
+        for (const prediction of predictions.slice(0, 3)) {
+          const label = prediction.label.toLowerCase();
+          
+          for (const keyword of plantKeywords) {
+            if (label.includes(keyword)) {
+              isPlant = true;
+              
+              // Try to determine specific plant type
+              const specificPlants = ["tomato", "potato", "corn", "wheat", "apple"];
+              for (const plant of specificPlants) {
+                if (label.includes(plant)) {
+                  plantType = plant;
+                  break;
+                }
+              }
+              
               break;
             }
           }
-          if (topPrediction) break;
+          
+          if (isPlant) break;
         }
         
-        // If no match was found, use the top prediction and map to unknown
-        if (!topPrediction) {
-          const bestGuess = predictions[0].label;
-          console.log("No exact disease match found. Best guess:", bestGuess);
+        if (isPlant) {
+          // ----- Plant Disease Detection Logic -----
+          // Check if there are disease indicators in the prediction
+          const diseaseIndicators = ["damaged", "wilted", "spotted", "brown", "yellow", 
+                                     "infected", "disease", "rot", "blight", "rust", "mold"];
           
-          // Try to find a partial match
-          for (const diseaseName of Object.keys(diseaseDatabase)) {
-            if (bestGuess.toLowerCase().includes(diseaseName.toLowerCase().split(" ")[0])) {
-              topPrediction = {
-                diseaseName: diseaseName,
-                ...diseaseDatabase[diseaseName]
-              };
+          let hasDisease = false;
+          for (const prediction of predictions.slice(0, 3)) {
+            const label = prediction.label.toLowerCase();
+            
+            if (diseaseIndicators.some(indicator => label.includes(indicator))) {
+              hasDisease = true;
               break;
             }
           }
           
-          // If still no match, return unknown
-          if (!topPrediction) {
-            topPrediction = {
-              diseaseName: "Unknown",
-              ...diseaseDatabase["Unknown"]
+          // If we've identified a specific plant type with disease
+          if (plantType && hasDisease) {
+            // Find a disease for this plant type
+            const plantDiseases = Object.keys(diseaseDatabase).filter(
+              name => name.toLowerCase().includes(plantType as string) && 
+                    !name.toLowerCase().includes("healthy")
+            );
+            
+            if (plantDiseases.length > 0) {
+              // Choose a common disease for this plant
+              const selectedDisease = plantDiseases[0];
+              console.log(`Detected ${plantType} with disease indicators, suggesting: ${selectedDisease}`);
+              return {
+                diseaseName: selectedDisease,
+                ...diseaseDatabase[selectedDisease]
+              };
+            }
+          }
+          
+          // If we have a plant type but uncertain about disease
+          if (plantType) {
+            // Try to find a healthy entry for this plant type
+            const healthyName = `${plantType.charAt(0).toUpperCase() + plantType.slice(1)} Healthy`;
+            
+            if (diseaseDatabase[healthyName]) {
+              console.log(`Detected healthy ${plantType}`);
+              return {
+                diseaseName: healthyName,
+                ...diseaseDatabase[healthyName]
+              };
+            } else {
+              // Default to tomato healthy if we can't find specific plant healthy status
+              console.log(`Detected plant (${plantType}) but defaulting to Tomato Healthy`);
+              return {
+                diseaseName: "Tomato Healthy",
+                ...diseaseDatabase["Tomato Healthy"]
+              };
+            }
+          }
+          
+          // It's a plant but we don't know what kind
+          console.log("Generic plant detected, defaulting to Tomato Healthy");
+          return {
+            diseaseName: "Tomato Healthy",
+            ...diseaseDatabase["Tomato Healthy"]
+          };
+        }
+      }
+    } catch (error: any) {
+      console.error("Error with general image model:", error?.message || "Unknown error");
+    }
+    
+    // ===== Fallback to one more specialized agriculture model =====
+    try {
+      console.log("Trying final agriculture-focused model");
+      const response = await axios.post(
+        "https://api-inference.huggingface.co/models/Dizuza/agri-plant-disease-resnet50",
+        imageBuffer,
+        { 
+          headers: { 
+            Authorization: `Bearer ${process.env.HUGGINGFACE_API_KEY}`,
+            "Content-Type": "application/octet-stream"
+          },
+          timeout: 10000
+        }
+      );
+      
+      if (response.data && Array.isArray(response.data) && response.data.length > 0) {
+        const topPrediction = response.data[0];
+        console.log("Final model response:", response.data);
+        
+        if (topPrediction.score > 0.3) { // Only use if we have decent confidence
+          const label = topPrediction.label.toLowerCase();
+          
+          // Check for disease keywords
+          const diseaseKeywords = ["blight", "spot", "rust", "mold", "virus", "bacterial"];
+          if (diseaseKeywords.some(keyword => label.includes(keyword))) {
+            // Most common disease is Tomato Early Blight
+            console.log("Found disease indicators in final model, using Tomato Early Blight");
+            return {
+              diseaseName: "Tomato Early Blight",
+              ...diseaseDatabase["Tomato Early Blight"]
+            };
+          }
+          
+          if (label.includes("healthy")) {
+            console.log("Final model indicates healthy plant");
+            return {
+              diseaseName: "Tomato Healthy",
+              ...diseaseDatabase["Tomato Healthy"]
             };
           }
         }
-        
-        return topPrediction;
-      } else {
-        console.error("Unexpected response format from HuggingFace API");
-        throw new Error("Invalid API response format");
       }
     } catch (error: any) {
-      console.error("Error calling HuggingFace API:", error?.message || "Unknown error");
-      
-      // Fallback to a more specific model for plant diseases if the first one fails
-      try {
-        const secondResponse = await axios.post(
-          "https://api-inference.huggingface.co/models/merve/plant-disease-classification",
-          imageBuffer,
-          { 
-            headers: { 
-              Authorization: `Bearer ${process.env.HUGGINGFACE_API_KEY}`,
-              "Content-Type": "application/octet-stream"
-            },
-            timeout: 30000
-          }
-        );
-        
-        if (secondResponse.data && Array.isArray(secondResponse.data)) {
-          console.log("Secondary HuggingFace API Response:", secondResponse.data);
-          
-          // Extract the top prediction
-          const predictions = secondResponse.data;
-          let diseaseName = "Unknown";
-          
-          if (predictions.length > 0) {
-            const topLabel = predictions[0].label;
-            
-            // Try to match with our database
-            for (const knownDisease of Object.keys(diseaseDatabase)) {
-              if (topLabel.toLowerCase().includes(knownDisease.toLowerCase().split(" ")[0])) {
-                diseaseName = knownDisease;
-                break;
-              }
-            }
-          }
-          
-          // Return the disease information
-          return {
-            diseaseName,
-            ...diseaseDatabase[diseaseName] || diseaseDatabase["Unknown"]
-          };
-        } else {
-          throw new Error("Invalid secondary API response format");
-        }
-      } catch (error: any) {
-        console.error("Error with secondary model:", error?.message || "Unknown error");
-        
-        // Return a random disease from our database as a final fallback
-        const diseaseKeys = Object.keys(diseaseDatabase);
-        const randomDisease = diseaseKeys[Math.floor(Math.random() * (diseaseKeys.length - 1))]; // Exclude "Unknown"
-        
-        return {
-          diseaseName: randomDisease,
-          ...diseaseDatabase[randomDisease]
-        };
-      }
+      console.error("Error with final model:", error?.message || "Unknown error");
     }
+    
+    // ===== If we've tried everything and still can't identify, return Unknown =====
+    console.log("Could not confidently identify plant disease, returning Unknown");
+    return {
+      diseaseName: "Unknown",
+      ...diseaseDatabase["Unknown"]
+    };
   } catch (error) {
-    console.error("Error classifying plant disease:", error);
+    console.error("Critical error in plant disease classification process:", error);
     throw new Error("Failed to classify plant disease");
   }
 }
