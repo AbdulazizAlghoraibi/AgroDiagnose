@@ -202,12 +202,16 @@ async function classifyPlantDisease(imagePath: string): Promise<{
     // Read the image file as a buffer for API requests
     const imageBuffer = fs.readFileSync(imagePath);
     
+    // Some models might require specific image preprocessing
+    // Let's also prepare a base64 version in case some models prefer it
+    const imageBase64 = imageBuffer.toString('base64');
+    
     // Define an array of specialized plant disease models to try
     const plantDiseaseModels = [
-      "merve/plant-disease-classification",         // Specialized plant disease model
-      "darragh/tomato-plant-disease",               // Specific for tomato diseases
-      "gogomomo12/plant_diseases_classification_63", // Comprehensive plant disease model
-      "nouribram/apple-disease-detection"           // Apple disease detection model
+      "gopalkumr/Plant-disease-detection",      // User recommended plant disease model
+      "Dizuza/agri-plant-disease-resnet50",     // Agriculture-focused disease model
+      "HuggingFaceM4/vit-base-beans",           // Plant disease fine-tuned model
+      "Jeffery2001/potato-disease-classification" // Potato disease specialized model
     ];
 
     // ===== Step 1: Try specialized plant disease models first =====
@@ -215,17 +219,37 @@ async function classifyPlantDisease(imagePath: string): Promise<{
       try {
         console.log(`Trying plant disease model: ${modelEndpoint}`);
         
-        const response = await axios.post(
-          `https://api-inference.huggingface.co/models/${modelEndpoint}`,
-          imageBuffer,
-          { 
-            headers: { 
-              Authorization: `Bearer ${process.env.HUGGINGFACE_API_KEY}`,
-              "Content-Type": "application/octet-stream"
-            },
-            timeout: 12000 // 12-second timeout per specialized model
-          }
-        );
+        // First try with binary format (most common for image models)
+        let response;
+        try {
+          response = await axios.post(
+            `https://api-inference.huggingface.co/models/${modelEndpoint}`,
+            imageBuffer,
+            { 
+              headers: { 
+                Authorization: `Bearer ${process.env.HUGGINGFACE_API_KEY}`,
+                "Content-Type": "application/octet-stream"
+              },
+              timeout: 12000 // 12-second timeout per specialized model
+            }
+          );
+        } catch (error) {
+          console.log(`Binary format failed for ${modelEndpoint}, trying base64...`);
+          
+          // If binary format fails, try with base64 JSON payload
+          // This is required for some models that expect base64-encoded images
+          response = await axios.post(
+            `https://api-inference.huggingface.co/models/${modelEndpoint}`,
+            { image: imageBase64 },
+            { 
+              headers: { 
+                Authorization: `Bearer ${process.env.HUGGINGFACE_API_KEY}`,
+                "Content-Type": "application/json"
+              },
+              timeout: 12000
+            }
+          );
+        }
         
         // Check if we received valid prediction data
         if (response.data && Array.isArray(response.data)) {
@@ -445,42 +469,194 @@ async function classifyPlantDisease(imagePath: string): Promise<{
     // ===== Fallback to one more specialized agriculture model =====
     try {
       console.log("Trying final agriculture-focused model");
-      const response = await axios.post(
-        "https://api-inference.huggingface.co/models/Dizuza/agri-plant-disease-resnet50",
-        imageBuffer,
-        { 
-          headers: { 
-            Authorization: `Bearer ${process.env.HUGGINGFACE_API_KEY}`,
-            "Content-Type": "application/octet-stream"
-          },
-          timeout: 10000
-        }
-      );
       
-      if (response.data && Array.isArray(response.data) && response.data.length > 0) {
-        const topPrediction = response.data[0];
+      // Try with various format options for maximum compatibility
+      let response;
+      
+      try {
+        // Try binary format first
+        response = await axios.post(
+          "https://api-inference.huggingface.co/models/gopalkumr/Plant-disease-detection",
+          imageBuffer,
+          { 
+            headers: { 
+              Authorization: `Bearer ${process.env.HUGGINGFACE_API_KEY}`,
+              "Content-Type": "application/octet-stream"
+            },
+            timeout: 10000
+          }
+        );
+      } catch (error) {
+        console.log("Binary format failed for final model, trying base64 JSON...");
+        
+        try {
+          // Try base64 JSON format
+          response = await axios.post(
+            "https://api-inference.huggingface.co/models/gopalkumr/Plant-disease-detection",
+            { image: imageBase64 },
+            { 
+              headers: { 
+                Authorization: `Bearer ${process.env.HUGGINGFACE_API_KEY}`,
+                "Content-Type": "application/json"
+              },
+              timeout: 10000
+            }
+          );
+        } catch (error) {
+          console.log("Base64 JSON failed, trying URL parameter form...");
+          
+          // Some models require the image to be sent as a URL parameter
+          // Let's create a URL-friendly version of the base64 image
+          const imageUrl = `data:image/jpeg;base64,${imageBase64}`;
+          
+          response = await axios.post(
+            "https://api-inference.huggingface.co/models/gopalkumr/Plant-disease-detection",
+            { url: imageUrl },
+            { 
+              headers: { 
+                Authorization: `Bearer ${process.env.HUGGINGFACE_API_KEY}`,
+                "Content-Type": "application/json"
+              },
+              timeout: 15000
+            }
+          );
+        }
+      }
+      
+      if (response.data) {
         console.log("Final model response:", response.data);
         
-        if (topPrediction.score > 0.3) { // Only use if we have decent confidence
-          const label = topPrediction.label.toLowerCase();
+        // Handle different response formats from the model
+        if (Array.isArray(response.data) && response.data.length > 0) {
+          // Standard HuggingFace array format
+          const topPrediction = response.data[0];
           
-          // Check for disease keywords
-          const diseaseKeywords = ["blight", "spot", "rust", "mold", "virus", "bacterial"];
-          if (diseaseKeywords.some(keyword => label.includes(keyword))) {
-            // Most common disease is Tomato Early Blight
-            console.log("Found disease indicators in final model, using Tomato Early Blight");
-            return {
-              diseaseName: "Tomato Early Blight",
-              ...diseaseDatabase["Tomato Early Blight"]
+          if (topPrediction.score > 0.3) { // Only use if we have decent confidence
+            const label = topPrediction.label.toLowerCase();
+            
+            // This specific model may return exact class names - try direct mapping first
+            // Common plant disease names returned by this model
+            const diseaseLabelMap: Record<string, string> = {
+              "tomato early blight": "Tomato Early Blight",
+              "tomato late blight": "Tomato Late Blight",
+              "tomato leaf mold": "Tomato Leaf Mold",
+              "tomato septoria leaf spot": "Tomato Septoria Leaf Spot",
+              "tomato bacterial spot": "Tomato Bacterial Spot",
+              "tomato spotted spider mites": "Tomato Spider Mites",
+              "tomato target spot": "Tomato Target Spot",
+              "tomato mosaic virus": "Tomato Mosaic Virus",
+              "tomato yellow leaf curl virus": "Tomato Yellow Leaf Curl Virus",
+              "healthy": "Tomato Healthy",
+              "tomato healthy": "Tomato Healthy",
+              "potato early blight": "Potato Early Blight",
+              "potato late blight": "Potato Late Blight",
+              "potato healthy": "Potato Healthy",
+              "corn common rust": "Corn Common Rust",
+              "corn northern leaf blight": "Corn Northern Leaf Blight",
+              "corn healthy": "Corn Healthy"
             };
+            
+            // Check if label matches any known disease name or pattern
+            for (const [modelLabel, diseaseName] of Object.entries(diseaseLabelMap)) {
+              if (label.includes(modelLabel)) {
+                console.log(`Found exact disease match from model: ${diseaseName}`);
+                return {
+                  diseaseName,
+                  ...diseaseDatabase[diseaseName]
+                };
+              }
+            }
+            
+            // Check for disease keywords
+            const diseaseKeywords = ["blight", "spot", "rust", "mold", "virus", "bacterial", "curl", "mite"];
+            if (diseaseKeywords.some(keyword => label.includes(keyword))) {
+              // If we have a disease indicator, try to determine the plant type
+              const plantTypes = ["tomato", "potato", "corn", "apple", "wheat"];
+              let plantType = "tomato"; // Default to tomato if no specific plant mentioned
+              
+              for (const type of plantTypes) {
+                if (label.includes(type)) {
+                  plantType = type;
+                  break;
+                }
+              }
+              
+              // Now determine the disease type
+              let diseaseType = "Early Blight"; // Default
+              if (label.includes("late blight")) diseaseType = "Late Blight";
+              else if (label.includes("leaf mold") || label.includes("mold")) diseaseType = "Leaf Mold";
+              else if (label.includes("septoria")) diseaseType = "Septoria Leaf Spot";
+              else if (label.includes("bacterial")) diseaseType = "Bacterial Spot";
+              else if (label.includes("spider") || label.includes("mite")) diseaseType = "Spider Mites";
+              else if (label.includes("target")) diseaseType = "Target Spot";
+              else if (label.includes("mosaic")) diseaseType = "Mosaic Virus";
+              else if (label.includes("curl")) diseaseType = "Yellow Leaf Curl Virus";
+              else if (label.includes("rust")) diseaseType = "Common Rust";
+              
+              // Construct the disease name
+              const diseaseName = `${plantType.charAt(0).toUpperCase() + plantType.slice(1)} ${diseaseType}`;
+              
+              // Check if this is a known disease in our database
+              if (diseaseDatabase[diseaseName]) {
+                console.log(`Constructed disease name: ${diseaseName}`);
+                return {
+                  diseaseName,
+                  ...diseaseDatabase[diseaseName]
+                };
+              } else {
+                // Fall back to a common disease
+                console.log(`Constructed disease ${diseaseName} not found, falling back to Tomato Early Blight`);
+                return {
+                  diseaseName: "Tomato Early Blight",
+                  ...diseaseDatabase["Tomato Early Blight"]
+                };
+              }
+            }
+            
+            if (label.includes("healthy")) {
+              // If it's healthy, try to determine the plant type
+              const plantTypes = ["tomato", "potato", "corn", "apple", "wheat"];
+              let plantType = "tomato"; // Default to tomato
+              
+              for (const type of plantTypes) {
+                if (label.includes(type)) {
+                  plantType = type;
+                  break;
+                }
+              }
+              
+              const healthyName = `${plantType.charAt(0).toUpperCase() + plantType.slice(1)} Healthy`;
+              if (diseaseDatabase[healthyName]) {
+                console.log(`Found healthy plant: ${healthyName}`);
+                return {
+                  diseaseName: healthyName,
+                  ...diseaseDatabase[healthyName]
+                };
+              } else {
+                console.log("Generic healthy plant detected, using Tomato Healthy");
+                return {
+                  diseaseName: "Tomato Healthy",
+                  ...diseaseDatabase["Tomato Healthy"]
+                };
+              }
+            }
           }
-          
-          if (label.includes("healthy")) {
-            console.log("Final model indicates healthy plant");
-            return {
-              diseaseName: "Tomato Healthy",
-              ...diseaseDatabase["Tomato Healthy"]
-            };
+        } else if (typeof response.data === 'object') {
+          // Some models return non-array formats, try to extract useful information
+          if (response.data.predicted_label) {
+            const label = response.data.predicted_label.toLowerCase();
+            console.log(`Non-array response with predicted_label: ${label}`);
+            
+            // Look for direct matches in our database
+            for (const diseaseName of Object.keys(diseaseDatabase)) {
+              if (label.includes(diseaseName.toLowerCase())) {
+                console.log(`Found disease match: ${diseaseName}`);
+                return {
+                  diseaseName,
+                  ...diseaseDatabase[diseaseName]
+                };
+              }
+            }
           }
         }
       }
