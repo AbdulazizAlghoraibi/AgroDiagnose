@@ -61,7 +61,7 @@ export default function HistoryItem({ diagnosis, language }: HistoryItemProps) {
           <div className="flex justify-between items-start">
             <h3 className="font-bold text-primary-dark">{diagnosis.diseaseName}</h3>
             <span className="text-xs text-gray-500">
-              {t("history.date", language)} {formatDate(diagnosis.timestamp, language)}
+              {t("history.date", language)} {diagnosis && diagnosis.timestamp ? formatDate(diagnosis.timestamp, language) : formatDate(new Date(), language)}
             </span>
           </div>
           <p className="text-sm text-gray-600 mt-1 line-clamp-2">

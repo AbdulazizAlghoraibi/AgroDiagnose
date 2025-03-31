@@ -88,7 +88,9 @@ export default function DiagnosisResult({
             
             <div className="mb-4 p-3 bg-status-info/10 rounded-lg border border-status-info/30">
               <h3 className="font-bold text-status-info text-lg">{diagnosis.diseaseName}</h3>
-              <p className="text-sm text-gray-500">{formatDate(diagnosis.timestamp, language)}</p>
+              <p className="text-sm text-gray-500">
+                {diagnosis && diagnosis.timestamp ? formatDate(diagnosis.timestamp, language) : formatDate(new Date(), language)}
+              </p>
             </div>
             
             <div className="mb-4">

@@ -161,15 +161,33 @@ export function t(key: string, language: Language): string {
  * @param language The current language
  * @returns The formatted date string
  */
-export function formatDate(date: Date, language: Language): string {
-  const options: Intl.DateTimeFormatOptions = {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  };
-  
-  const locale = language === 'ar' ? 'ar-SA' : 'en-US';
-  return new Intl.DateTimeFormat(locale, options).format(date);
+export function formatDate(date: Date | string | number | null | undefined, language: Language): string {
+  try {
+    // Check if date is valid
+    if (!date) {
+      return language === 'ar' ? 'تاريخ غير متاح' : 'Date unavailable';
+    }
+    
+    // Convert to Date object if it's a string or number
+    const dateObj = date instanceof Date ? date : new Date(date);
+    
+    // Check if date is valid
+    if (isNaN(dateObj.getTime())) {
+      return language === 'ar' ? 'تاريخ غير صالح' : 'Invalid date';
+    }
+    
+    const options: Intl.DateTimeFormatOptions = {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    };
+    
+    const locale = language === 'ar' ? 'ar-SA' : 'en-US';
+    return new Intl.DateTimeFormat(locale, options).format(dateObj);
+  } catch (error) {
+    console.error('Error formatting date:', error);
+    return language === 'ar' ? 'تاريخ غير متاح' : 'Date unavailable';
+  }
 }
