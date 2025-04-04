@@ -122,6 +122,10 @@ export const translations: TranslationDictionary = {
     ar: "AR | EN",
     en: "EN | AR"
   },
+  "nav.local": {
+    ar: "تحليل محلي",
+    en: "Local Analysis"
+  },
 
   // Not Found page
   "notfound.title": {
@@ -135,6 +139,80 @@ export const translations: TranslationDictionary = {
   "notfound.back": {
     ar: "العودة إلى الصفحة الرئيسية",
     en: "Back to Home"
+  },
+  
+  // TensorFlow Model Component
+  "tfModelTitle": {
+    ar: "تحليل الصورة باستخدام الذكاء الاصطناعي",
+    en: "AI-Powered Plant Analysis"
+  },
+  "tfModelDescription": {
+    ar: "تحليل محلي للصورة باستخدام نموذج TensorFlow.js",
+    en: "Local image analysis using TensorFlow.js model"
+  },
+  "loadingModel": {
+    ar: "جاري تحميل نموذج الذكاء الاصطناعي...",
+    en: "Loading AI model..."
+  },
+  "modelLoadError": {
+    ar: "خطأ في تحميل النموذج",
+    en: "Model loading error"
+  },
+  "checkModelFiles": {
+    ar: "يرجى التأكد من وجود ملفات النموذج في الدليل الصحيح",
+    en: "Please ensure model files are in the correct directory"
+  },
+  "dropImageHere": {
+    ar: "اسحب وأفلت الصورة هنا",
+    en: "Drop your image here"
+  },
+  "orClickToUpload": {
+    ar: "أو انقر للتحميل",
+    en: "or click to upload"
+  },
+  "formatsAccepted": {
+    ar: "الصيغ المقبولة",
+    en: "formats accepted"
+  },
+  "analyzing": {
+    ar: "جاري التحليل...",
+    en: "Analyzing..."
+  },
+  "analyzeImage": {
+    ar: "تحليل الصورة",
+    en: "Analyze Image"
+  },
+  "diagnosisResult": {
+    ar: "نتيجة التشخيص",
+    en: "Diagnosis Result"
+  },
+  "detected": {
+    ar: "تم اكتشاف",
+    en: "Detected"
+  },
+  "confidence": {
+    ar: "درجة الثقة",
+    en: "Confidence"
+  },
+  "severity": {
+    ar: "الخطورة",
+    en: "Severity"
+  },
+  "low": {
+    ar: "منخفضة",
+    en: "Low"
+  },
+  "medium": {
+    ar: "متوسطة",
+    en: "Medium"
+  },
+  "high": {
+    ar: "عالية",
+    en: "High"
+  },
+  "tfPrivacyNote": {
+    ar: "يتم معالجة الصور محليًا على جهازك. لا يتم إرسال أي صور إلى خادم خارجي.",
+    en: "Images are processed locally on your device. No images are sent to any external server."
   }
 };
 

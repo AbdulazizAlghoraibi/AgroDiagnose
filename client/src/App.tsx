@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/Home";
 import DiagnosisHistory from "@/pages/DiagnosisHistory";
+import LocalModelDetection from "@/pages/LocalModelDetection";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import MobileNavigation from "@/components/MobileNavigation";
@@ -41,6 +42,9 @@ function Router() {
             </Route>
             <Route path="/history">
               <DiagnosisHistory language={language} />
+            </Route>
+            <Route path="/local-model">
+              <LocalModelDetection language={language} setLanguage={setLanguage} />
             </Route>
             <Route>
               <NotFound language={language} />

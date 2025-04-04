@@ -4,7 +4,9 @@ import ImageUpload from "@/components/ImageUpload";
 import DiagnosisResult from "@/components/DiagnosisResult";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Diagnosis } from "@shared/schema";
-import { UploadCloud, History } from "lucide-react";
+import { UploadCloud, History, Cpu } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { t } from "@/lib/translations";
 import { Language } from "@/lib/translations";
 
@@ -93,6 +95,41 @@ export default function Home({ language }: HomeProps) {
               </div>
             )}
           </div>
+          
+          {/* TensorFlow Local Model Section */}
+          <Card className="mt-8 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 border-blue-100 dark:border-blue-900">
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Cpu className="h-5 w-5 mr-2 text-blue-500" />
+                {language === 'ar' 
+                  ? 'التحليل المحلي بدون إنترنت'
+                  : 'Offline Local Analysis'
+                }
+              </CardTitle>
+              <CardDescription>
+                {language === 'ar'
+                  ? 'استخدم نموذج TensorFlow.js المحلي لتحليل الصور بدون إنترنت'
+                  : 'Use TensorFlow.js local model to analyze images offline'
+                }
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm">
+                {language === 'ar'
+                  ? 'يمكنك تحليل صور أوراق النباتات محليًا على متصفحك بدون الحاجة إلى اتصال إنترنت بعد تحميل النموذج. هذا النموذج يدعم أكثر من 38 نوعًا من أمراض النباتات.'
+                  : 'Analyze plant leaf images locally in your browser without needing an internet connection after the model is loaded. This model supports over 38 plant disease types.'
+                }
+              </p>
+            </CardContent>
+            <CardFooter>
+              <Button asChild variant="outline" className="border-blue-300 hover:bg-blue-100 dark:border-blue-700 dark:hover:bg-blue-900">
+                <Link href="/local-model">
+                  <Cpu className="h-4 w-4 mr-2" />
+                  {language === 'ar' ? 'تجربة التحليل المحلي' : 'Try Local Analysis'}
+                </Link>
+              </Button>
+            </CardFooter>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>
