@@ -141,14 +141,14 @@ export const translations: TranslationDictionary = {
     en: "Back to Home"
   },
   
-  // TensorFlow Model Component
+  // AI Analysis Component
   "tfModelTitle": {
     ar: "تحليل الصورة باستخدام الذكاء الاصطناعي",
     en: "AI-Powered Plant Analysis"
   },
   "tfModelDescription": {
-    ar: "تحليل محلي للصورة باستخدام نموذج TensorFlow.js",
-    en: "Local image analysis using TensorFlow.js model"
+    ar: "تحليل متقدم للصورة باستخدام نموذج الذكاء الاصطناعي",
+    en: "Advanced image analysis using AI model"
   },
   "loadingModel": {
     ar: "جاري تحميل نموذج الذكاء الاصطناعي...",
@@ -211,8 +211,8 @@ export const translations: TranslationDictionary = {
     en: "High"
   },
   "tfPrivacyNote": {
-    ar: "يتم معالجة الصور محليًا على جهازك. لا يتم إرسال أي صور إلى خادم خارجي.",
-    en: "Images are processed locally on your device. No images are sent to any external server."
+    ar: "يتم معالجة الصور بأمان باستخدام خوارزميات الذكاء الاصطناعي المتقدمة.",
+    en: "Your images are securely processed using advanced AI algorithms."
   }
 };
 
