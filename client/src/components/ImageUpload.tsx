@@ -1,7 +1,7 @@
 import { useRef, useState, DragEvent } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ImagePlus, X, Search } from "lucide-react";
+import { ImagePlus, X, Search, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { t } from "@/lib/translations";
 import { Language } from "@/lib/translations";
@@ -13,6 +13,7 @@ interface ImageUploadProps {
   onRemoveImage: () => void;
   onAnalyzeImage: () => void;
   language: Language;
+  isLoading?: boolean;
 }
 
 export default function ImageUpload({
@@ -21,7 +22,8 @@ export default function ImageUpload({
   onImageSelect,
   onRemoveImage,
   onAnalyzeImage,
-  language
+  language,
+  isLoading = false
 }: ImageUploadProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -128,10 +130,20 @@ export default function ImageUpload({
             </div>
             <Button
               onClick={onAnalyzeImage}
+              disabled={isLoading}
               className="mt-4 w-full bg-primary hover:bg-primary-dark text-white font-medium py-2 rounded-lg flex items-center justify-center transition"
             >
-              <Search className="mr-2 h-5 w-5" />
-              {t("home.analyze.button", language)}
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  {t("analyzing", language)}
+                </>
+              ) : (
+                <>
+                  <Search className="mr-2 h-5 w-5" />
+                  {t("analyzeImage", language)}
+                </>
+              )}
             </Button>
           </div>
         )}

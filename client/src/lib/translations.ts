@@ -175,8 +175,8 @@ export const translations: TranslationDictionary = {
     en: "formats accepted"
   },
   "analyzing": {
-    ar: "جاري التحليل...",
-    en: "Analyzing..."
+    ar: "⚙️ جاري التحليل...",
+    en: "⚙️ Analyzing..."
   },
   "analyzeImage": {
     ar: "تحليل الصورة",

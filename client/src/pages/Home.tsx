@@ -76,6 +76,7 @@ export default function Home({ language }: HomeProps) {
                     setIsAnalyzing(true);
                   }
                 }}
+                isLoading={isAnalyzing}
                 language={language}
               />
             </div>
