@@ -10,4 +10,5 @@ dependencies = [
     "pillow>=11.1.0",
     "python-dotenv>=1.1.0",
     "tensorflow>=2.14.0",
+    "tensorflowjs>=4.22.0",
 ]

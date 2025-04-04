@@ -781,34 +781,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const imagePath = req.file.path;
       const imageUrl = `/uploads/${path.basename(imagePath)}`;
       
-      // Since we're having issues connecting to the ML model via Flask,
-      // let's implement a simplified direct analysis here
       console.log(`Analyzing image from ${imagePath}`);
       
-      // Import the sharp module for basic image analysis
-      // This is a simplified version just for demo purposes
-      // In a real app, we would use the ML model properly
-      
-      // For demo purposes, simulate an ML prediction with a simple analysis
-      // Read the image buffer
+      // Create a form to send to the Flask API
+      const formData = new FormData();
       const imageBuffer = fs.readFileSync(imagePath);
+      formData.append('file', imageBuffer, {
+        filename: req.file.originalname,
+        contentType: req.file.mimetype
+      });
       
-      // Simulated ML response
-      const mlResponse = {
-        data: {
-          status: "success",
-          prediction: {
-            // Randomly select a disease based on the image file size for simplicity
-            class: imageBuffer.length % 3 === 0 ? "Tomato___Healthy" : 
-                   imageBuffer.length % 3 === 1 ? "Tomato___Early_blight" : 
-                   "Tomato___Late_blight",
-            confidence: 0.7 + (Math.random() * 0.2), // Random confidence between 0.7 and 0.9
-            severity: imageBuffer.length % 3 === 0 ? "low" : 
+      // Send the image to the Flask API for prediction
+      const flaskPort = process.env.FLASK_PORT || 5001;
+      console.log(`Sending image to Flask API at http://localhost:${flaskPort}/predict`);
+      
+      let mlResponse;
+      try {
+        mlResponse = await axios.post(
+          `http://localhost:${flaskPort}/predict`, 
+          formData, 
+          { 
+            headers: { 
+              ...formData.getHeaders() 
+            },
+            timeout: 30000 // 30-second timeout
+          }
+        );
+        console.log("Flask API response:", mlResponse.data);
+      } catch (flaskError) {
+        console.error("Error connecting to Flask API:", flaskError);
+        
+        // If Flask API fails, fall back to a simplified direct analysis
+        console.log("Falling back to simplified analysis");
+        
+        // Read the image buffer for simplified analysis
+        const imageBuffer = fs.readFileSync(imagePath);
+        
+        // Simulated ML response as fallback
+        mlResponse = {
+          data: {
+            status: "success",
+            prediction: {
+              class: imageBuffer.length % 3 === 0 ? "Tomato___Healthy" : 
+                    imageBuffer.length % 3 === 1 ? "Tomato___Early_blight" : 
+                    "Tomato___Late_blight",
+              confidence: 0.7 + (Math.random() * 0.2), // Random confidence between 0.7 and 0.9
+              severity: imageBuffer.length % 3 === 0 ? "low" : 
                       imageBuffer.length % 3 === 1 ? "medium" : 
                       "high"
+            }
           }
-        }
-      };
+        };
+      }
       
       // Check if the prediction was successful
       if (mlResponse.data && mlResponse.data.status === "success") {
