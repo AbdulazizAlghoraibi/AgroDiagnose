@@ -1,6 +1,26 @@
+# Node modules
 node_modules
+
+# Build output
 dist
+build
+
+# System files
 .DS_Store
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Vercel and deployment
+.vercel
+
+# Server output if exists
 server/public
-vite.config.ts.*
+
+# Temp files
 *.tar.gz
+*.env.local
+*.env.production
+*.env.development
