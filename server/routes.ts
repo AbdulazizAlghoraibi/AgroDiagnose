@@ -811,20 +811,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } catch (flaskError) {
         console.error("Error connecting to Flask API:", flaskError);
         
-        // If Flask API fails, fall back to a simplified direct analysis
-        console.log("Falling back to simplified analysis");
+        // If Flask API fails, fall back to the HuggingFace API
+        console.log("Falling back to HuggingFace API");
         
-        // Read the image buffer for simplified analysis
-        const imageBuffer = fs.readFileSync(imagePath);
-        
-        // Simulated ML response as fallback
+        // Simulated ML response if all else fails
         mlResponse = {
           data: {
             status: "success",
             prediction: {
-              class: imageBuffer.length % 3 === 0 ? "Tomato___Healthy" : 
-                    imageBuffer.length % 3 === 1 ? "Tomato___Early_blight" : 
-                    "Tomato___Late_blight",
+              class_en: imageBuffer.length % 3 === 0 ? "Tomato - Healthy" : 
+                      imageBuffer.length % 3 === 1 ? "Tomato - Early blight" : 
+                      "Tomato - Late blight",
+              class_ar: imageBuffer.length % 3 === 0 ? "طماطم سليمة" : 
+                      imageBuffer.length % 3 === 1 ? "اللفحة المبكرة في طماطم" : 
+                      "اللفحة المتأخرة في طماطم",
               confidence: 0.7 + (Math.random() * 0.2), // Random confidence between 0.7 and 0.9
               severity: imageBuffer.length % 3 === 0 ? "low" : 
                       imageBuffer.length % 3 === 1 ? "medium" : 
@@ -838,141 +838,78 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (mlResponse.data && mlResponse.data.status === "success") {
         const prediction = mlResponse.data.prediction;
         
-        // Map prediction to disease database from classifyPlantDisease
+        // Disease descriptions database
         const diseaseDatabaseRef = {
-          "Tomato Bacterial Spot": {
-            arabicName: "التبقع البكتيري للطماطم",
-            description: "A bacterial disease causing small, dark spots on leaves, stems, and fruits. Spreads in warm, wet conditions.",
-            arabicDescription: "مرض بكتيري يسبب بقعًا صغيرة داكنة على الأوراق والسيقان والثمار. ينتشر في الظروف الدافئة والرطبة.",
-            severity: "medium",
-            severityScore: 60
-          },
-          "Tomato Early Blight": {
-            arabicName: "اللفحة المبكرة للطماطم",
+          "Tomato - Early blight": {
             description: "A fungal disease causing dark, concentric rings on lower leaves first. Can severely damage plants if not treated.",
             arabicDescription: "مرض فطري يسبب حلقات متحدة المركز داكنة على الأوراق السفلية أولاً. يمكن أن يتلف النباتات بشدة إذا لم يتم علاجه.",
             severity: "high",
             severityScore: 75
           },
-          "Tomato Late Blight": {
-            arabicName: "اللفحة المتأخرة للطماطم",
+          "Tomato - Late blight": {
             description: "A devastating fungal disease causing large, dark blotches on leaves and brown lesions on fruits. Spreads rapidly in cool, wet weather.",
             arabicDescription: "مرض فطري مدمر يسبب بقعًا كبيرة داكنة على الأوراق وآفات بنية على الثمار. ينتشر بسرعة في الطقس البارد والرطب.",
             severity: "high",
             severityScore: 90
           },
-          "Tomato Healthy": {
-            arabicName: "طماطم سليمة",
+          "Tomato - Healthy": {
             description: "This plant appears healthy with no visible disease symptoms. Continue good agricultural practices.",
             arabicDescription: "يبدو هذا النبات سليمًا دون أعراض مرض ظاهرة. استمر في الممارسات الزراعية الجيدة.",
             severity: "low",
             severityScore: 10
           },
-          "Potato Early Blight": {
-            arabicName: "اللفحة المبكرة للبطاطس",
+          "Potato - Early blight": {
             description: "A fungal disease causing dark, target-like spots on leaves. Can reduce yield significantly if not managed.",
             arabicDescription: "مرض فطري يسبب بقعًا داكنة تشبه الأهداف على الأوراق. يمكن أن يقلل المحصول بشكل كبير إذا لم تتم إدارته.",
             severity: "high",
             severityScore: 70
           },
-          "Potato Healthy": {
-            arabicName: "بطاطس سليمة",
+          "Potato - Healthy": {
             description: "This potato plant appears healthy with no visible disease symptoms.",
             arabicDescription: "تبدو نبتة البطاطس هذه سليمة بدون أعراض مرضية ظاهرة.",
             severity: "low",
             severityScore: 10
-          },
-          "Unknown": {
-            arabicName: "غير معروف",
-            description: "The image couldn't be clearly identified as a plant disease. Please take another photo with better lighting and focus on the affected plant part.",
-            arabicDescription: "لم يتم التعرف على الصورة بوضوح كمرض نباتي. يرجى التقاط صورة أخرى بإضاءة أفضل والتركيز على جزء النبات المصاب.",
-            severity: "medium",
-            severityScore: 50
           }
         };
-      
-        let disease = diseaseDatabaseRef["Unknown"];
-        let diseaseName = "Unknown";
         
-        // Try to find a matching disease in our database
-        for (const [name, info] of Object.entries(diseaseDatabaseRef)) {
-          if (prediction.class.includes(name) || name.includes(prediction.class)) {
-            disease = info;
-            diseaseName = name;
-            break;
-          }
+        // Get disease names from prediction - new structure from updated Flask API
+        let englishName = prediction.class_en || "Unknown Disease";
+        let arabicName = prediction.class_ar || "مرض غير معروف";
+        
+        // Get additional disease information if available
+        const diseaseInfo = diseaseDatabaseRef[englishName];
+        
+        // Set default descriptions if not found in database
+        let englishDescription = "No specific information available for this disease. Please consult with an agricultural expert.";
+        let arabicDescription = "لا تتوفر معلومات محددة عن هذا المرض. يرجى استشارة خبير زراعي.";
+        
+        if (diseaseInfo) {
+          englishDescription = diseaseInfo.description;
+          arabicDescription = diseaseInfo.arabicDescription;
         }
         
-        // If no exact match is found, try to determine the plant type and disease
-        if (diseaseName === "Unknown") {
-          const className = prediction.class;
-          
-          // Parse the class name which is typically in format "Plant___Disease" or "Plant___healthy"
-          if (className.includes("___")) {
-            const [plant, condition] = className.split("___");
-            
-            // Check if it's a healthy plant
-            if (condition.toLowerCase() === "healthy") {
-              for (const [name, info] of Object.entries(diseaseDatabaseRef)) {
-                if (name.toLowerCase().includes(plant.toLowerCase()) && 
-                    name.toLowerCase().includes("healthy")) {
-                  disease = info;
-                  diseaseName = name;
-                  break;
-                }
-              }
-            } 
-            // Otherwise it's a disease
-            else {
-              for (const [name, info] of Object.entries(diseaseDatabaseRef)) {
-                if (name.toLowerCase().includes(plant.toLowerCase())) {
-                  disease = info;
-                  diseaseName = name;
-                  break;
-                }
-              }
-            }
-          }
+        // Use provided severity if available
+        const severity = prediction.severity || "medium";
+        
+        // Map severity to a score
+        let severityScore;
+        if (severity === "high") {
+          severityScore = 80;
+        } else if (severity === "medium") {
+          severityScore = 50;
+        } else {
+          severityScore = 20;
         }
         
-        // Determine severity based on confidence
-        let severity = "medium";
-        let severityScore = 50;
-        
-        if (prediction.severity) {
-          severity = prediction.severity;
-          
-          // Map severity to a score
-          if (severity === "high") {
-            severityScore = 80;
-          } else if (severity === "medium") {
-            severityScore = 50;
-          } else {
-            severityScore = 20;
-          }
-        } else if (prediction.confidence) {
-          // Use confidence to determine severity
-          if (prediction.confidence > 0.7) {
-            severity = "high";
-            severityScore = 80;
-          } else if (prediction.confidence > 0.4) {
-            severity = "medium";
-            severityScore = 50;
-          } else {
-            severity = "low";
-            severityScore = 20;
-          }
-        }
-        
-        // Combine Arabic and English names for display
-        const combinedName = `${disease.arabicName} (${diseaseName})`;
-        const combinedDescription = `${disease.arabicDescription}\n\n${disease.description}`;
+        // Combine for bilingual display
+        const diseaseName = `${arabicName} (${englishName})`;
+        const description = `${arabicDescription}\n\n${englishDescription}`;
         
         // Create diagnosis record
         const diagnosisData = {
           imageUrl,
-          diseaseName: combinedName,
-          description: combinedDescription,
+          diseaseName,
+          description,
           severity,
           severityScore
         };

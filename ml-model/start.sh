@@ -1,10 +1,10 @@
 #!/bin/bash
 
-# Set environment variables
-export PYTHONPATH=$(pwd)
-export FLASK_APP=app.py
+# Set the Flask port (use 5001 as default)
 export FLASK_PORT=5001
 
-# Start the Flask API server
-echo "Starting Flask API for ML model on port $FLASK_PORT..."
-python3 run.py
+# Activate Python environment if needed
+# source /path/to/venv/bin/activate
+
+# Start the Flask API
+python run.py
